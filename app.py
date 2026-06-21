@@ -29,8 +29,8 @@ AGENTS_SHEET_NAME = "BBDD_ARMY"
 DAILY_CONTROL_SHEET_NAME = "CONTROL_DIARIO"
 MATCHES_SHEET_NAME = "PARTIDOS"
 TIMEZONE = ZoneInfo("America/Lima")
-CACHE_TTL_SECONDS = 15
-REFRESH_INTERVAL_SECONDS = 15
+REFRESH_INTERVAL_SECONDS = 15 * 60
+CACHE_TTL_SECONDS = REFRESH_INTERVAL_SECONDS
 VIEW_OPTIONS = [
     "Resumen Diario",
     "Cumplimiento por Evento",
@@ -930,38 +930,70 @@ def inject_styles() -> None:
             color: #94a3b8;
         }
 
+        @keyframes tabSoftEnter {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         div[data-testid="stSegmentedControl"] {
-            background: #ffffff;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
             border: 1px solid var(--betsson-border);
-            border-radius: 8px;
-            padding: 0.28rem;
+            border-radius: 10px;
+            padding: 0.32rem;
             margin-bottom: 1rem;
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+            animation: tabSoftEnter 0.28s ease-out both;
+        }
+
+        div[data-testid="stSegmentedControl"] div[role="radiogroup"] {
+            gap: 0.28rem !important;
         }
 
         div[data-testid="stSegmentedControl"] button {
-            border-radius: 6px !important;
+            border-radius: 8px !important;
             font-family: 'Inter', sans-serif !important;
             font-size: 0.78rem !important;
             font-weight: 700 !important;
-            min-height: 34px !important;
+            min-height: 36px !important;
+            color: #334155 !important;
+            background-color: transparent !important;
             border-color: transparent !important;
-            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+            box-shadow: none !important;
+            transition:
+                background-color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+                color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+                border-color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 0.22s ease !important;
         }
 
         div[data-testid="stSegmentedControl"] button:hover {
             background-color: #fff7ed !important;
-            border-color: #fed7aa !important;
+            border-color: #fdba74 !important;
             color: #c2410c !important;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(255, 102, 0, 0.1) !important;
         }
 
         div[data-testid="stSegmentedControl"] button[aria-checked="true"],
         div[data-testid="stSegmentedControl"] button[aria-selected="true"],
         div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
-            background: linear-gradient(180deg, #ff7a1a 0%, #ff6600 100%) !important;
+            background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 55%, #e85d04 100%) !important;
             color: #ffffff !important;
             border-color: #ff6600 !important;
-            box-shadow: 0 6px 14px rgba(255, 102, 0, 0.22) !important;
+            box-shadow: 0 8px 18px rgba(255, 102, 0, 0.24) !important;
+            transform: translateY(-1px);
+        }
+
+        div[data-testid="stSegmentedControl"] button:focus-visible {
+            outline: 2px solid rgba(255, 102, 0, 0.35) !important;
+            outline-offset: 2px !important;
         }
 
         /* Card container */
@@ -1303,6 +1335,7 @@ def render_top_header(df: pd.DataFrame, agents: pd.DataFrame, refreshed_at: date
         else "Sin registros"
     )
     refreshed_label = refreshed_at.strftime("%d/%m/%Y %H:%M:%S")
+    refresh_minutes = REFRESH_INTERVAL_SECONDS // 60
     logo_src = asset_data_uri(LOGO_SVG_PATH, "image/svg+xml")
     logo_markup = (
         f'<div class="header-logo"><img src="{logo_src}" alt="Betsson" /></div>'
@@ -1322,6 +1355,7 @@ def render_top_header(df: pd.DataFrame, agents: pd.DataFrame, refreshed_at: date
             <div class="header-right">
                 <span class="update-badge">Última respuesta: {escape(latest_label)}</span>
                 <span class="update-badge">Dashboard actualizado: {escape(refreshed_label)}</span>
+                <span class="update-badge">Auto-refresh: cada {refresh_minutes} min</span>
             </div>
         </div>
         """
