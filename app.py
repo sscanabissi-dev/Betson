@@ -2716,6 +2716,7 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
             comp_data = [(log / obj * 100) if obj > 0 else 0 for log, obj in zip(log_data, obj_data)]
             
             option2 = echart_base("Histórico de Cumplimiento de Objetivos")
+            option2["grid"] = {"top": 58, "left": 12, "right": 18, "bottom": 14, "containLabel": True}
             option2["xAxis"] = {"type": "category", "data": ctrl_dates, "axisLabel": {"color": INK}}
             option2["yAxis"] = [
                 {"type": "value", "name": "Acciones", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}},
@@ -2724,9 +2725,9 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
             option2["series"] = [
                 {"name": "Logrado", "type": "bar", "data": log_data, "barMaxWidth": 14, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}},
                 {"name": "Objetivo", "type": "bar", "data": obj_data, "barMaxWidth": 14, "label": {"show": True, "position": "top", "fontSize": 8, "color": "#475569"}},
-                {"name": "Cumplimiento %", "type": "line", "yAxisIndex": 1, "data": [round(c, 1) for c in comp_data], "smooth": True, "label": {"show": True, "position": "top", "formatter": "{c}%", "fontSize": 8, "fontWeight": "bold", "color": "#065f46"}}
+                {"name": "Cumplimiento %", "type": "line", "yAxisIndex": 1, "data": [round(c, 1) for c in comp_data], "smooth": True, "label": {"show": True, "position": "right", "formatter": "{c}%", "fontSize": 8, "fontWeight": "bold", "color": "#065f46"}}
             ]
-            render_echart(option2, height=220, key="hist_goals_compliance_chart")
+            render_echart(option2, height=240, key="hist_goals_compliance_chart")
             
     col3, col4 = st.columns(2)
     
