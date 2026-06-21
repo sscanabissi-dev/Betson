@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from html import escape
 from io import StringIO
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -30,6 +30,7 @@ DAILY_CONTROL_SHEET_NAME = "CONTROL_DIARIO"
 MATCHES_SHEET_NAME = "PARTIDOS"
 TIMEZONE = ZoneInfo("America/Lima")
 CACHE_TTL_SECONDS = 15
+REFRESH_INTERVAL_SECONDS = 15
 ECHARTS_CDN_URL = "https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"
 ICONIFY_SVG_URL = "https://api.iconify.design/{icon}.svg"
 APP_DIR = Path(__file__).resolve().parent
@@ -178,9 +179,15 @@ def configured_csv_url(sheet_name: str) -> str:
 
     return sheet_csv_url(sheet_name)
 
+def add_cache_buster(url: str, refresh_key: int) -> str:
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["_dashboard_refresh"] = str(refresh_key)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+
 @st.cache_data(show_spinner=False, ttl=CACHE_TTL_SECONDS)
-def load_sheet(sheet_name: str, required_columns: tuple[str, ...]) -> pd.DataFrame:
-    csv_url = configured_csv_url(sheet_name)
+def load_sheet(sheet_name: str, required_columns: tuple[str, ...], refresh_key: int) -> pd.DataFrame:
+    csv_url = add_cache_buster(configured_csv_url(sheet_name), refresh_key)
     request = Request(csv_url, headers={"User-Agent": "Mozilla/5.0"})
     with urlopen(request, timeout=20) as response:
         csv_content = response.read().decode("utf-8")
@@ -2766,15 +2773,16 @@ def main() -> None:
     inject_styles()
     daily_goal = 5
     
-    refresh_seconds = 60
+    refresh_seconds = REFRESH_INTERVAL_SECONDS
+    refresh_key = int(datetime.now(TIMEZONE).timestamp() // refresh_seconds)
     if st_autorefresh:
         st_autorefresh(interval=refresh_seconds * 1000, key="sheet_refresh")
         
     try:
-        raw_interactions = load_sheet(INTERACTIONS_SHEET_NAME, INTERACTION_REQUIRED_COLUMNS)
-        raw_agents = load_sheet(AGENTS_SHEET_NAME, AGENT_REQUIRED_COLUMNS)
-        raw_control = load_sheet(DAILY_CONTROL_SHEET_NAME, DAILY_CONTROL_REQUIRED_COLUMNS)
-        raw_matches = load_sheet(MATCHES_SHEET_NAME, MATCHES_REQUIRED_COLUMNS)
+        raw_interactions = load_sheet(INTERACTIONS_SHEET_NAME, INTERACTION_REQUIRED_COLUMNS, refresh_key)
+        raw_agents = load_sheet(AGENTS_SHEET_NAME, AGENT_REQUIRED_COLUMNS, refresh_key)
+        raw_control = load_sheet(DAILY_CONTROL_SHEET_NAME, DAILY_CONTROL_REQUIRED_COLUMNS, refresh_key)
+        raw_matches = load_sheet(MATCHES_SHEET_NAME, MATCHES_REQUIRED_COLUMNS, refresh_key)
     except Exception as exc:
         st.error("No se pudo conectar a Google Sheets.")
         st.exception(exc)
