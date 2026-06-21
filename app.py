@@ -41,8 +41,8 @@ VIEW_OPTIONS = [
 ECHARTS_CDN_URL = "https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"
 ICONIFY_SVG_URL = "https://api.iconify.design/{icon}.svg"
 APP_DIR = Path(__file__).resolve().parent
-LOGO_SVG_PATH = APP_DIR / "assets" / "betsson-logo.svg"
-LOGO_PNG_PATH = APP_DIR / "assets" / "betsson-logo.png"
+LOGO_PNG_PATH = APP_DIR / "assets" / "betsson-logo-new.png"
+ISOTYPE_PNG_PATH = APP_DIR / "assets" / "betsson-isotype.png"
 
 # Color Palette (Light Theme Betsson-based)
 ORANGE = "#ff6600"
@@ -569,6 +569,47 @@ def enrich_interactions(interactions: pd.DataFrame, agents: pd.DataFrame) -> pd.
 
     return enriched.drop(columns=["_merge"]).sort_values(TIMESTAMP_COL, ascending=False)
 
+@st.cache_data(show_spinner=False, ttl=CACHE_TTL_SECONDS)
+def get_processed_dashboard_data(refresh_key: int) -> dict:
+    raw_interactions = load_sheet(INTERACTIONS_SHEET_NAME, INTERACTION_REQUIRED_COLUMNS, refresh_key)
+    raw_agents = load_sheet(AGENTS_SHEET_NAME, AGENT_REQUIRED_COLUMNS, refresh_key)
+    raw_control = load_sheet(DAILY_CONTROL_SHEET_NAME, DAILY_CONTROL_REQUIRED_COLUMNS, refresh_key)
+    raw_matches = load_sheet(MATCHES_SHEET_NAME, MATCHES_REQUIRED_COLUMNS, refresh_key)
+    
+    interactions = prepare_interactions(raw_interactions)
+    agents = prepare_agents(raw_agents)
+    daily_control = prepare_daily_control(raw_control)
+    matches = prepare_matches(raw_matches)
+    enriched = enrich_interactions(interactions, agents)
+    daily_control = apply_interaction_actuals_to_daily_control(daily_control, enriched)
+
+    # Merge daily_control with agents to get Estatus and Activo
+    daily_control = daily_control.merge(
+        agents[[JOIN_KEY_COL, STATUS_COL, "Activo"]],
+        on=JOIN_KEY_COL,
+        how="left"
+    )
+    # Override status for retired/inactive agents so they are not considered as failing/incumplidos
+    is_retired = daily_control[STATUS_COL] == "RETIRADO"
+    is_inactive = daily_control[STATUS_COL] == "INACTIVO"
+    daily_control.loc[is_retired, "estado_cumplimiento"] = "RETIRADO"
+    daily_control.loc[is_inactive, "estado_cumplimiento"] = "INACTIVO"
+
+    refreshed_at = datetime.now(TIMEZONE)
+
+    return {
+        "raw_interactions": raw_interactions,
+        "raw_agents": raw_agents,
+        "raw_control": raw_control,
+        "raw_matches": raw_matches,
+        "interactions": interactions,
+        "agents": agents,
+        "daily_control": daily_control,
+        "matches": matches,
+        "enriched": enriched,
+        "refreshed_at": refreshed_at
+    }
+
 # Styling & CSS Injection
 def inject_styles() -> None:
     st.markdown(
@@ -727,7 +768,7 @@ def inject_styles() -> None:
         }
 
         .header-logo img {
-            height: 32px;
+            height: 48px;
             object-fit: contain;
             display: block;
         }
@@ -906,19 +947,7 @@ def inject_styles() -> None:
                 transform 0.22s ease;
         }
 
-        .dashboard-tab::after {
-            content: "";
-            position: absolute;
-            left: 12px;
-            right: 12px;
-            bottom: 6px;
-            height: 2px;
-            border-radius: 999px;
-            background: transparent;
-            transition: background-color 0.22s ease, transform 0.22s ease;
-            transform: scaleX(0);
-            transform-origin: left;
-        }
+
 
         .dashboard-tab-index {
             flex: 0 0 auto;
@@ -952,10 +981,7 @@ def inject_styles() -> None:
             box-shadow: 0 8px 16px rgba(255, 102, 0, 0.1);
         }
 
-        .dashboard-tab:hover::after {
-            background: #fdba74;
-            transform: scaleX(1);
-        }
+
 
         .dashboard-tab.active {
             background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 60%, #e85d04 100%);
@@ -965,10 +991,7 @@ def inject_styles() -> None:
             transform: translateY(-1px);
         }
 
-        .dashboard-tab.active::after {
-            background: rgba(255, 255, 255, 0.75);
-            transform: scaleX(1);
-        }
+
 
         .dashboard-tab.active .dashboard-tab-index {
             background: rgba(255, 255, 255, 0.18);
@@ -1091,7 +1114,7 @@ def inject_styles() -> None:
             }
 
             .header-logo img {
-                height: 28px;
+                height: 40px;
             }
 
             .header-title-section h1 {
@@ -1194,6 +1217,76 @@ def inject_styles() -> None:
         #MainMenu, header, footer {
             visibility: hidden;
             height: 0;
+        }
+
+        /* Custom styles to turn Streamlit buttons into premium navigation tabs */
+        .custom-navigation-tabs-anchor {
+            display: none;
+        }
+
+        .st-key-navigation_tabs div[data-testid="stHorizontalBlock"] {
+            gap: 0.35rem !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .st-key-navigation_tabs div[data-testid="stHorizontalBlock"] div[data-testid="column"] {
+            padding: 0 !important;
+            min-width: 0 !important;
+        }
+
+        /* Inactive button styles */
+        .st-key-navigation_tabs button {
+            position: relative !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            min-height: 42px !important;
+            height: 42px !important;
+            box-sizing: border-box !important;
+            border: 1px solid var(--betsson-border) !important;
+            border-radius: 8px !important;
+            background-color: #ffffff !important;
+            color: #475569 !important;
+            padding: 0.45rem 0.7rem !important;
+            font-family: 'Inter', sans-serif !important;
+            overflow: hidden !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .st-key-navigation_tabs button div,
+        .st-key-navigation_tabs button p {
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.76rem !important;
+            font-weight: 800 !important;
+            color: inherit !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            text-align: center !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        /* Hover state */
+        .st-key-navigation_tabs button:hover {
+            background-color: #fff9f5 !important;
+            border-color: var(--betsson-orange) !important;
+            color: var(--betsson-orange) !important;
+            transform: translateY(-1.5px) !important;
+            box-shadow: 0 6px 15px rgba(255, 102, 0, 0.08) !important;
+        }
+
+        /* Focus and active state resets */
+        .st-key-navigation_tabs button:focus,
+        .st-key-navigation_tabs button:active {
+            color: inherit !important;
+            background-color: #ffffff !important;
+            border-color: var(--betsson-border) !important;
         }
         </style>
         """,
@@ -1310,7 +1403,7 @@ def render_top_header(df: pd.DataFrame, agents: pd.DataFrame, refreshed_at: date
     )
     refreshed_label = refreshed_at.strftime("%d/%m/%Y %H:%M:%S")
     refresh_minutes = REFRESH_INTERVAL_SECONDS // 60
-    logo_src = asset_data_uri(LOGO_SVG_PATH, "image/svg+xml")
+    logo_src = asset_data_uri(LOGO_PNG_PATH, "image/png")
     logo_markup = (
         f'<div class="header-logo"><img src="{logo_src}" alt="Betsson" /></div>'
         if logo_src
@@ -2746,25 +2839,8 @@ def render_planning_tab(
             key="planning_schedule_grid"
         )
 
-def render_quality_tab(
-    raw_interactions: pd.DataFrame,
-    raw_agents: pd.DataFrame,
-    raw_control: pd.DataFrame,
-    raw_matches: pd.DataFrame,
-    enriched_df: pd.DataFrame,
-    agents: pd.DataFrame
-) -> None:
+def render_quality_tab(audit_report: pd.DataFrame) -> None:
     st.markdown("<div class='section-title'>Auditoría de Inconsistencias y Calidad de Datos</div>", unsafe_allow_html=True)
-    
-    # Generate audit report
-    audit_report = generate_quality_report(
-        raw_interactions, 
-        raw_agents, 
-        raw_control, 
-        raw_matches,
-        enriched_df, 
-        agents
-    )
     
     if audit_report.empty:
         st.success("¡Excelente! No se han detectado inconsistencias en los conjuntos de datos analizados.")
@@ -3139,6 +3215,10 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
 
 
 def current_navigation_view() -> str:
+    stored_view = st.session_state.get("navigation_view")
+    if stored_view in VIEW_OPTIONS:
+        return stored_view
+
     query_view = None
     try:
         query_view = st.query_params.get("view")
@@ -3148,46 +3228,75 @@ def current_navigation_view() -> str:
     if isinstance(query_view, (list, tuple)):
         query_view = query_view[0] if query_view else None
 
-    stored_view = st.session_state.get("navigation_view")
-    view = query_view if query_view in VIEW_OPTIONS else stored_view
-
-    if view not in VIEW_OPTIONS:
-        view = VIEW_OPTIONS[0]
-
+    view = query_view if query_view in VIEW_OPTIONS else VIEW_OPTIONS[0]
     st.session_state["navigation_view"] = view
     return view
 
 
 def render_view_tabs() -> None:
     active_view = st.session_state.get("navigation_view", VIEW_OPTIONS[0])
-    tabs_html = ""
+    try:
+        active_idx = VIEW_OPTIONS.index(active_view) + 1
+    except ValueError:
+        active_idx = 1
 
-    for idx, view_name in enumerate(VIEW_OPTIONS, start=1):
-        active_class = " active" if view_name == active_view else ""
-        tabs_html += (
-            f'<a class="dashboard-tab{active_class}" href="?view={quote(view_name)}">'
-            f'<span class="dashboard-tab-index">{idx:02d}</span>'
-            f'<span class="dashboard-tab-label">{escape(view_name)}</span>'
-            "</a>"
-        )
-
+    # Render CSS style specific to the active button
     st.markdown(
         f"""
-        <nav class="dashboard-tabs" aria-label="Vistas del dashboard">
-            <div class="dashboard-tabs-head">
+        <style>
+        .st-key-navigation_tabs div[data-testid="column"]:nth-child({active_idx}) button {{
+            background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 60%, #e85d04 100%) !important;
+            border-color: #ff6600 !important;
+            color: #ffffff !important;
+            box-shadow: 0 8px 20px rgba(255, 102, 0, 0.24) !important;
+            transform: translateY(-1px) !important;
+        }}
+        .st-key-navigation_tabs div[data-testid="column"]:nth-child({active_idx}) button p {{
+            color: #ffffff !important;
+        }}
+        .st-key-navigation_tabs div[data-testid="column"]:nth-child({active_idx}) button:hover {{
+            color: #ffffff !important;
+            border-color: #ff6600 !important;
+            background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 60%, #e85d04 100%) !important;
+            box-shadow: 0 10px 24px rgba(255, 102, 0, 0.3) !important;
+        }}
+        .st-key-navigation_tabs div[data-testid="column"]:nth-child({active_idx}) button:focus {{
+            color: #ffffff !important;
+            background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 60%, #e85d04 100%) !important;
+            border-color: #ff6600 !important;
+        }}
+        </style>
+        <nav class="dashboard-tabs" aria-label="Vistas del dashboard" style="margin-bottom: 0px; border-bottom: none; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; padding-bottom: 0px;">
+            <div class="dashboard-tabs-head" style="padding-bottom: 0.2rem; margin-bottom: 0px;">
                 <div class="dashboard-tabs-title">Vistas del dashboard</div>
                 <div class="dashboard-tabs-caption">Navegación principal</div>
             </div>
-            <div class="dashboard-tab-grid">
-                {tabs_html}
-            </div>
         </nav>
+        <div class="custom-navigation-tabs-anchor"></div>
         """,
         unsafe_allow_html=True,
     )
 
+    with st.container(key="navigation_tabs"):
+        cols = st.columns(5)
+        for idx, view_name in enumerate(VIEW_OPTIONS, start=1):
+            with cols[idx - 1]:
+                button_label = f"{idx:02d}  {view_name}"
+                if st.button(button_label, key=f"nav_tab_{view_name}", use_container_width=True):
+                    st.session_state["navigation_view"] = view_name
+                    st.rerun()
+
 
 def main() -> None:
+    try:
+        favicon = Image.open(ISOTYPE_PNG_PATH)
+    except Exception:
+        favicon = None
+    st.set_page_config(
+        page_title="ARMY BETSSON",
+        page_icon=favicon if favicon else "⚽",
+        layout="wide",
+    )
     inject_styles()
     daily_goal = 5
     
@@ -3197,41 +3306,28 @@ def main() -> None:
         st_autorefresh(interval=refresh_seconds * 1000, key="sheet_refresh")
         
     try:
-        raw_interactions = load_sheet(INTERACTIONS_SHEET_NAME, INTERACTION_REQUIRED_COLUMNS, refresh_key)
-        raw_agents = load_sheet(AGENTS_SHEET_NAME, AGENT_REQUIRED_COLUMNS, refresh_key)
-        raw_control = load_sheet(DAILY_CONTROL_SHEET_NAME, DAILY_CONTROL_REQUIRED_COLUMNS, refresh_key)
-        raw_matches = load_sheet(MATCHES_SHEET_NAME, MATCHES_REQUIRED_COLUMNS, refresh_key)
-        dashboard_refreshed_at = datetime.now(TIMEZONE)
+        data = get_processed_dashboard_data(refresh_key)
+        raw_interactions = data["raw_interactions"]
+        raw_agents = data["raw_agents"]
+        raw_control = data["raw_control"]
+        raw_matches = data["raw_matches"]
+        interactions = data["interactions"]
+        agents = data["agents"]
+        daily_control = data["daily_control"]
+        matches = data["matches"]
+        enriched = data["enriched"]
+        dashboard_refreshed_at = data["refreshed_at"]
     except Exception as exc:
-        st.error("No se pudo conectar a Google Sheets.")
+        st.error("No se pudo conectar a Google Sheets o procesar los datos.")
         st.exception(exc)
         st.stop()
-
-    # Pre-process datasets using clean transform layer
-    interactions = prepare_interactions(raw_interactions)
-    agents = prepare_agents(raw_agents)
-    daily_control = prepare_daily_control(raw_control)
-    matches = prepare_matches(raw_matches)
-    enriched = enrich_interactions(interactions, agents)
-    daily_control = apply_interaction_actuals_to_daily_control(daily_control, enriched)
-
-    # Merge daily_control with agents to get Estatus and Activo
-    daily_control = daily_control.merge(
-        agents[[JOIN_KEY_COL, STATUS_COL, "Activo"]],
-        on=JOIN_KEY_COL,
-        how="left"
-    )
-    # Override status for retired/inactive agents so they are not considered as failing/incumplidos
-    is_retired = daily_control[STATUS_COL] == "RETIRADO"
-    is_inactive = daily_control[STATUS_COL] == "INACTIVO"
-    daily_control.loc[is_retired, "estado_cumplimiento"] = "RETIRADO"
-    daily_control.loc[is_inactive, "estado_cumplimiento"] = "INACTIVO"
 
     # 1. Header Layout
     render_top_header(enriched, agents, dashboard_refreshed_at)
     
     # 2. In-content navigation tabs
     view = current_navigation_view()
+    render_view_tabs()
     
     # Render view-specific layouts
     if view == "Resumen Diario":
@@ -3298,7 +3394,6 @@ def main() -> None:
                 
         # Text summary below form
         act = st.session_state["daily_applied"]
-        render_view_tabs()
         
         # Render Tab 1
         render_daily_progress_tab(
@@ -3373,7 +3468,6 @@ def main() -> None:
                 
         # Text summary
         act = st.session_state["compliance_applied"]
-        render_view_tabs()
         
         # Render compliance tab
         render_compliance_tab(
@@ -3457,7 +3551,6 @@ def main() -> None:
                 
         # Text summary
         act = st.session_state["planning_applied"]
-        render_view_tabs()
         
         # Render planning tab
         render_planning_tab(
@@ -3472,20 +3565,92 @@ def main() -> None:
         )
         
     elif view == "Análisis Histórico":
-        render_view_tabs()
-        render_historical_tab(enriched, daily_control)
+        
+        clean_enriched = enriched.dropna(subset=["fecha_registro"])
+        clean_control = daily_control.dropna(subset=[CONTROL_DATE_COL])
+        
+        with st.form("historical_filters_form"):
+            col1, col2, col3, col4 = st.columns(
+                (1.5, 1.5, 1.5, 1.0),
+                vertical_alignment="bottom",
+            )
+            
+            # Date Range
+            min_date = clean_enriched["fecha_registro"].min() if not clean_enriched.empty else dt_module.date.today() - timedelta(days=30)
+            max_date = clean_enriched["fecha_registro"].max() if not clean_enriched.empty else dt_module.date.today()
+            f_dates = col1.date_input("Rango de Fechas", value=(min_date, max_date))
+            
+            # ARMY
+            with col2:
+                st.markdown("<p class='custom-widget-label'>Filtrar ARMY</p>", unsafe_allow_html=True)
+                army_options = sorted(clean_enriched["army_resuelto"].dropna().unique().tolist())
+                f_armies = multiselect_popover("ARMY", options=army_options, key_prefix="hist_army")
+            
+            # Event
+            with col3:
+                st.markdown("<p class='custom-widget-label'>Eventos</p>", unsafe_allow_html=True)
+                event_options = sorted(clean_enriched["evento_mostrar"].dropna().unique().tolist())
+                f_events = multiselect_popover("Eventos", options=event_options, key_prefix="hist_event")
+            
+            col4.form_submit_button("Aplicar Filtros", use_container_width=True)
+            
+        # Apply filters
+        filtered_enriched = clean_enriched
+        filtered_control = clean_control
+        
+        if isinstance(f_dates, (list, tuple)) and len(f_dates) == 2:
+            start_date, end_date = f_dates
+            filtered_enriched = filtered_enriched[(filtered_enriched["fecha_registro"] >= start_date) & (filtered_enriched["fecha_registro"] <= end_date)]
+            filtered_control = filtered_control[(filtered_control[CONTROL_DATE_COL] >= start_date) & (filtered_control[CONTROL_DATE_COL] <= end_date)]
+            
+        if f_armies:
+            filtered_enriched = filtered_enriched[filtered_enriched["army_resuelto"].isin(f_armies)]
+            filtered_control = filtered_control[filtered_control[CONTROL_ARMY_COL].isin(f_armies)]
+            
+        if f_events:
+            filtered_enriched = filtered_enriched[filtered_enriched["evento_mostrar"].isin(f_events)]
+            filtered_control = filtered_control[filtered_control["evento_mostrar"].isin(f_events)]
+            
+        render_historical_tab(filtered_enriched, filtered_control)
         
     elif view == "Calidad de Datos":
-        # Audit Tab
-        render_view_tabs()
-        render_quality_tab(
-            raw_interactions,
-            raw_agents,
-            raw_control,
+        
+        audit_report = generate_quality_report(
+            raw_interactions, 
+            raw_agents, 
+            raw_control, 
             raw_matches,
-            enriched,
+            enriched, 
             agents
         )
+        
+        with st.form("quality_filters_form"):
+            col1, col2, col3 = st.columns(
+                (1.5, 2.5, 1.0),
+                vertical_alignment="bottom",
+            )
+            
+            with col1:
+                st.markdown("<p class='custom-widget-label'>Hoja de Origen</p>", unsafe_allow_html=True)
+                sheet_options = sorted(audit_report["Hoja"].dropna().unique().tolist()) if not audit_report.empty else []
+                f_sheets = multiselect_popover("Hoja", options=sheet_options, key_prefix="qual_sheet")
+                
+            with col2:
+                st.markdown("<p class='custom-widget-label'>Tipo de Problema</p>", unsafe_allow_html=True)
+                issue_options = sorted(audit_report["Tipo de problema"].dropna().unique().tolist()) if not audit_report.empty else []
+                f_issues = multiselect_popover("Problema", options=issue_options, key_prefix="qual_issue")
+            
+            col3.form_submit_button("Aplicar Filtros", use_container_width=True)
+            
+        if not audit_report.empty:
+            filtered_report = audit_report[
+                audit_report["Hoja"].isin(f_sheets) & 
+                audit_report["Tipo de problema"].isin(f_issues)
+            ]
+        else:
+            filtered_report = audit_report
+            
+        render_quality_tab(filtered_report)
 
 if __name__ == "__main__":
     main()
