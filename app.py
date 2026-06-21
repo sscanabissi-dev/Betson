@@ -700,10 +700,11 @@ def inject_styles() -> None:
 
         /* Hide the st_autorefresh element container completely */
         iframe[title="streamlit_autorefresh.st_autorefresh"] {
-            display: none !important;
-            height: 0px !important;
-            width: 0px !important;
+            opacity: 0 !important;
+            height: 1px !important;
+            width: 1px !important;
             position: absolute !important;
+            pointer-events: none !important;
         }
 
         /* Top Header Card */
@@ -760,6 +761,14 @@ def inject_styles() -> None:
             border: 1px solid var(--betsson-border);
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
         /* Sidebar settings */
         section[data-testid="stSidebar"] {
             display: none !important;
@@ -791,6 +800,16 @@ def inject_styles() -> None:
             padding: 0.6rem 0.8rem !important;
             margin-bottom: 0.8rem !important;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02) !important;
+        }
+
+        div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+            align-items: flex-end !important;
+        }
+
+        div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] button {
+            width: 100% !important;
+            min-height: 32px !important;
+            height: 32px !important;
         }
 
         div[data-baseweb="select"], 
@@ -922,6 +941,108 @@ def inject_styles() -> None:
             font-weight: 500;
         }
 
+        @media (max-width: 900px) {
+            .block-container {
+                padding-top: 0.35rem !important;
+                padding-left: 0.65rem !important;
+                padding-right: 0.65rem !important;
+                padding-bottom: 1rem !important;
+            }
+
+            .header-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding: 0.75rem;
+            }
+
+            .header-left {
+                width: 100%;
+                align-items: flex-start;
+                gap: 0.7rem;
+            }
+
+            .header-logo img {
+                height: 28px;
+            }
+
+            .header-title-section h1 {
+                font-size: 1rem;
+                overflow-wrap: anywhere;
+            }
+
+            .header-title-section p {
+                font-size: 0.65rem;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .update-badge {
+                width: 100%;
+                box-sizing: border-box;
+                text-align: left;
+            }
+
+            div[data-testid="stForm"] {
+                padding: 0.65rem !important;
+            }
+
+            div[data-testid="stForm"] div[data-testid="stHorizontalBlock"],
+            div[data-testid="stHorizontalBlock"] {
+                flex-wrap: wrap !important;
+                gap: 0.55rem !important;
+            }
+
+            div[data-testid="stForm"] div[data-testid="column"] {
+                flex: 1 1 220px !important;
+                min-width: min(100%, 220px) !important;
+            }
+
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+                flex: 1 1 320px !important;
+                min-width: min(100%, 320px) !important;
+            }
+
+            div[data-testid="stSegmentedControl"] div[role="radiogroup"] {
+                flex-wrap: wrap !important;
+            }
+
+            div[data-testid="stSegmentedControl"] button {
+                flex: 1 1 180px !important;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .header-left {
+                flex-direction: column;
+            }
+
+            div[data-testid="stForm"] div[data-testid="column"],
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+                flex: 1 1 100% !important;
+                min-width: 100% !important;
+            }
+
+            div[data-testid="stForm"] div[data-baseweb="select"] > div,
+            div[data-testid="stForm"] div[data-testid="stDateInput"] div[role="presentation"],
+            div[data-testid="stForm"] div[data-testid="stPopover"] button,
+            div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] button {
+                min-height: 38px !important;
+                height: 38px !important;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
         /* Hide elements to clean Streamlit default UI */
         #MainMenu, header, footer {
             visibility: hidden;
@@ -1033,13 +1154,14 @@ def daily_person_progress(day_df: pd.DataFrame, daily_goal: int) -> pd.DataFrame
         
     return pd.DataFrame(rows)
 
-def render_top_header(df: pd.DataFrame, agents: pd.DataFrame) -> None:
+def render_top_header(df: pd.DataFrame, agents: pd.DataFrame, refreshed_at: datetime) -> None:
     latest_timestamp = df[TIMESTAMP_COL].dropna().max()
     latest_label = (
         latest_timestamp.strftime("%d/%m/%Y %H:%M")
         if pd.notna(latest_timestamp)
         else "Sin registros"
     )
+    refreshed_label = refreshed_at.strftime("%d/%m/%Y %H:%M:%S")
     logo_src = asset_data_uri(LOGO_SVG_PATH, "image/svg+xml")
     logo_markup = (
         f'<div class="header-logo"><img src="{logo_src}" alt="Betsson" /></div>'
@@ -1057,7 +1179,8 @@ def render_top_header(df: pd.DataFrame, agents: pd.DataFrame) -> None:
                 </div>
             </div>
             <div class="header-right">
-                <span class="update-badge">Respuestas Sheet: {latest_label}</span>
+                <span class="update-badge">Última respuesta: {escape(latest_label)}</span>
+                <span class="update-badge">Dashboard actualizado: {escape(refreshed_label)}</span>
             </div>
         </div>
         """
@@ -2907,6 +3030,7 @@ def main() -> None:
         raw_agents = load_sheet(AGENTS_SHEET_NAME, AGENT_REQUIRED_COLUMNS, refresh_key)
         raw_control = load_sheet(DAILY_CONTROL_SHEET_NAME, DAILY_CONTROL_REQUIRED_COLUMNS, refresh_key)
         raw_matches = load_sheet(MATCHES_SHEET_NAME, MATCHES_REQUIRED_COLUMNS, refresh_key)
+        dashboard_refreshed_at = datetime.now(TIMEZONE)
     except Exception as exc:
         st.error("No se pudo conectar a Google Sheets.")
         st.exception(exc)
@@ -2933,7 +3057,7 @@ def main() -> None:
     daily_control.loc[is_inactive, "estado_cumplimiento"] = "INACTIVO"
 
     # 1. Header Layout
-    render_top_header(enriched, agents)
+    render_top_header(enriched, agents, dashboard_refreshed_at)
     
     # 2. In-content navigation tabs
     view = current_navigation_view()
@@ -2942,7 +3066,10 @@ def main() -> None:
     if view == "Resumen Diario":
         # Form Filter container at the top
         with st.form("daily_filters_form"):
-            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns((1.0, 1.2, 1.2, 1.2, 1.0, 1.2, 1.0, 1.0))
+            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(
+                (1.0, 1.2, 1.2, 1.2, 1.0, 1.2, 1.0, 1.0),
+                vertical_alignment="bottom",
+            )
             
             # Select Day
             valid_dates = sorted(enriched["fecha_registro"].dropna().unique().tolist(), reverse=True)
@@ -2969,11 +3096,8 @@ def main() -> None:
             # Tipo Participación
             f_participation = col6.selectbox("Tipo Participación", options=["Todos", "COMENTARIO", "REPOST"])
             
-            # Action buttons
-            col7.markdown("<p class='custom-widget-label'>&nbsp;</p>", unsafe_allow_html=True)
             apply_btn = col7.form_submit_button("Aplicar", use_container_width=True, type="primary")
             
-            col8.markdown("<p class='custom-widget-label'>&nbsp;</p>", unsafe_allow_html=True)
             clear_btn = col8.form_submit_button("Limpiar", use_container_width=True)
             
             # State management for form submission
@@ -3029,7 +3153,10 @@ def main() -> None:
         
     elif view == "Cumplimiento por Evento":
         with st.form("compliance_filters_form"):
-            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns((1.0, 1.2, 1.2, 1.2, 1.0, 1.2, 1.0, 1.0))
+            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(
+                (1.0, 1.2, 1.2, 1.2, 1.0, 1.2, 1.0, 1.0),
+                vertical_alignment="bottom",
+            )
             
             # Dates in control
             valid_ctrl_dates = sorted(daily_control[CONTROL_DATE_COL].dropna().unique().tolist(), reverse=True)
@@ -3056,11 +3183,8 @@ def main() -> None:
             # Estatus Cumplimiento
             f_compliance_status = col6.selectbox("Cumplimiento", options=["Todos", "CUMPLIDO", "PARCIAL", "NO CUMPLIDO", "SIN OBJETIVO CARGADO", "SIN ACTIVIDAD"])
             
-            # Action buttons
-            col7.markdown("<p class='custom-widget-label'>&nbsp;</p>", unsafe_allow_html=True)
             apply_btn = col7.form_submit_button("Aplicar", use_container_width=True, type="primary")
             
-            col8.markdown("<p class='custom-widget-label'>&nbsp;</p>", unsafe_allow_html=True)
             clear_btn = col8.form_submit_button("Limpiar", use_container_width=True)
             
             if "compliance_applied" not in st.session_state or clear_btn:
@@ -3110,7 +3234,10 @@ def main() -> None:
         
     elif view == "Planificación de Partidos":
         with st.form("planning_filters_form"):
-            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns((1.5, 1.1, 1.2, 1.1, 1.1, 1.1, 1.0, 1.0))
+            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(
+                (1.5, 1.1, 1.2, 1.1, 1.1, 1.1, 1.0, 1.0),
+                vertical_alignment="bottom",
+            )
             
             # Dates
             match_dates = sorted(matches[MATCH_DATE_COL].dropna().unique().tolist())
@@ -3138,11 +3265,8 @@ def main() -> None:
             pressure_options = ["Todos"] + sorted(matches["Nivel de presión"].dropna().unique().tolist())
             f_pressure = col6.selectbox("Presión", options=pressure_options)
             
-            # Action buttons
-            col7.markdown("<p class='custom-widget-label'>&nbsp;</p>", unsafe_allow_html=True)
             apply_btn = col7.form_submit_button("Aplicar", use_container_width=True, type="primary")
             
-            col8.markdown("<p class='custom-widget-label'>&nbsp;</p>", unsafe_allow_html=True)
             clear_btn = col8.form_submit_button("Limpiar", use_container_width=True)
             
             if "planning_applied" not in st.session_state or clear_btn:
