@@ -832,104 +832,6 @@ def inject_styles() -> None:
             line-height: 1.1;
         }
 
-        .filter-summary-card {
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-            border: 1px solid var(--betsson-border);
-            border-radius: 8px;
-            padding: 0.75rem 0.85rem;
-            margin: 0 0 0.75rem 0;
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
-        }
-
-        .filter-summary-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            margin-bottom: 0.55rem;
-        }
-
-        .filter-summary-title {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.72rem;
-            font-weight: 900;
-            color: var(--betsson-ink);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .filter-summary-hint {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.66rem;
-            font-weight: 700;
-            color: var(--betsson-muted);
-        }
-
-        .filter-chip-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.45rem;
-        }
-
-        .filter-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            min-height: 28px;
-            max-width: 100%;
-            box-sizing: border-box;
-            border: 1px solid #dbe3ee;
-            border-radius: 999px;
-            background-color: #ffffff;
-            padding: 0.28rem 0.65rem;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-        }
-
-        .filter-chip span {
-            flex: 0 0 auto;
-            font-size: 0.62rem;
-            font-weight: 900;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .filter-chip strong {
-            min-width: 0;
-            font-size: 0.72rem;
-            font-weight: 800;
-            color: var(--betsson-ink);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .view-tabs-header {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 0.75rem;
-            margin: 0.2rem 0 0.45rem 0;
-        }
-
-        .view-tabs-label {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.68rem;
-            font-weight: 800;
-            color: var(--betsson-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin: 0;
-        }
-
-        .view-tabs-caption {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.66rem;
-            font-weight: 700;
-            color: #94a3b8;
-        }
-
         @keyframes tabSoftEnter {
             from {
                 opacity: 0;
@@ -941,59 +843,142 @@ def inject_styles() -> None:
             }
         }
 
-        div[data-testid="stSegmentedControl"] {
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        .dashboard-tabs {
+            background: #ffffff;
             border: 1px solid var(--betsson-border);
-            border-radius: 10px;
-            padding: 0.32rem;
+            border-radius: 8px;
+            padding: 0.5rem;
             margin-bottom: 1rem;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
             animation: tabSoftEnter 0.28s ease-out both;
         }
 
-        div[data-testid="stSegmentedControl"] div[role="radiogroup"] {
-            gap: 0.28rem !important;
+        .dashboard-tabs-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.1rem 0.15rem 0.55rem 0.15rem;
         }
 
-        div[data-testid="stSegmentedControl"] button {
-            border-radius: 8px !important;
+        .dashboard-tabs-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.68rem;
+            font-weight: 900;
+            color: var(--betsson-muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .dashboard-tabs-caption {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.66rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+
+        .dashboard-tab-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.35rem;
+        }
+
+        .dashboard-tab {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            min-height: 42px;
+            box-sizing: border-box;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #334155;
+            padding: 0.45rem 0.7rem;
             font-family: 'Inter', sans-serif !important;
-            font-size: 0.78rem !important;
-            font-weight: 700 !important;
-            min-height: 36px !important;
-            color: #334155 !important;
-            background-color: transparent !important;
-            border-color: transparent !important;
-            box-shadow: none !important;
+            text-decoration: none !important;
+            overflow: hidden;
             transition:
                 background-color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
                 color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
                 border-color 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
                 box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
-                transform 0.22s ease !important;
+                transform 0.22s ease;
         }
 
-        div[data-testid="stSegmentedControl"] button:hover {
-            background-color: #fff7ed !important;
-            border-color: #fdba74 !important;
-            color: #c2410c !important;
+        .dashboard-tab::after {
+            content: "";
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: 6px;
+            height: 2px;
+            border-radius: 999px;
+            background: transparent;
+            transition: background-color 0.22s ease, transform 0.22s ease;
+            transform: scaleX(0);
+            transform-origin: left;
+        }
+
+        .dashboard-tab-index {
+            flex: 0 0 auto;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #94a3b8;
+            font-size: 0.64rem;
+            font-weight: 900;
+            box-shadow: inset 0 0 0 1px #e2e8f0;
+        }
+
+        .dashboard-tab-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .dashboard-tab:hover {
+            background: #fff7ed;
+            border-color: #fdba74;
+            color: #c2410c;
             transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(255, 102, 0, 0.1) !important;
+            box-shadow: 0 8px 16px rgba(255, 102, 0, 0.1);
         }
 
-        div[data-testid="stSegmentedControl"] button[aria-checked="true"],
-        div[data-testid="stSegmentedControl"] button[aria-selected="true"],
-        div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
-            background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 55%, #e85d04 100%) !important;
-            color: #ffffff !important;
-            border-color: #ff6600 !important;
-            box-shadow: 0 8px 18px rgba(255, 102, 0, 0.24) !important;
+        .dashboard-tab:hover::after {
+            background: #fdba74;
+            transform: scaleX(1);
+        }
+
+        .dashboard-tab.active {
+            background: linear-gradient(135deg, #ff7a1a 0%, #ff6600 60%, #e85d04 100%);
+            border-color: #ff6600;
+            color: #ffffff;
+            box-shadow: 0 10px 22px rgba(255, 102, 0, 0.24);
             transform: translateY(-1px);
         }
 
-        div[data-testid="stSegmentedControl"] button:focus-visible {
-            outline: 2px solid rgba(255, 102, 0, 0.35) !important;
-            outline-offset: 2px !important;
+        .dashboard-tab.active::after {
+            background: rgba(255, 255, 255, 0.75);
+            transform: scaleX(1);
+        }
+
+        .dashboard-tab.active .dashboard-tab-index {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+
+        .dashboard-tab:focus-visible {
+            outline: 2px solid rgba(255, 102, 0, 0.35);
+            outline-offset: 2px;
         }
 
         /* Card container */
@@ -1149,23 +1134,18 @@ def inject_styles() -> None:
                 min-width: min(100%, 320px) !important;
             }
 
-            div[data-testid="stSegmentedControl"] div[role="radiogroup"] {
-                flex-wrap: wrap !important;
-            }
-
-            div[data-testid="stSegmentedControl"] button {
-                flex: 1 1 180px !important;
-            }
-
-            .filter-summary-head,
-            .view-tabs-header {
+            .dashboard-tabs-head {
                 align-items: flex-start;
                 flex-direction: column;
                 gap: 0.2rem;
             }
 
-            .filter-chip {
-                flex: 1 1 180px;
+            .dashboard-tab-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .dashboard-tab {
+                min-height: 40px;
             }
 
             .kpi-grid {
@@ -1192,23 +1172,17 @@ def inject_styles() -> None:
                 height: 38px !important;
             }
 
-            .filter-summary-card {
-                padding: 0.7rem;
+            .dashboard-tabs {
+                padding: 0.45rem;
             }
 
-            .filter-chip {
-                flex: 1 1 100%;
-                justify-content: space-between;
-                border-radius: 8px;
+            .dashboard-tab-grid {
+                grid-template-columns: 1fr;
             }
 
-            .filter-chip strong {
-                text-align: right;
-            }
-
-            div[data-testid="stSegmentedControl"] button {
-                flex: 1 1 100% !important;
-                justify-content: center !important;
+            .dashboard-tab {
+                min-height: 42px;
+                padding: 0.5rem 0.65rem;
             }
 
             .kpi-grid {
@@ -3165,62 +3139,52 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
 
 
 def current_navigation_view() -> str:
-    selector_view = st.session_state.get("navigation_view_selector")
+    query_view = None
+    try:
+        query_view = st.query_params.get("view")
+    except Exception:
+        query_view = None
+
+    if isinstance(query_view, (list, tuple)):
+        query_view = query_view[0] if query_view else None
+
     stored_view = st.session_state.get("navigation_view")
-    view = selector_view if selector_view in VIEW_OPTIONS else stored_view
+    view = query_view if query_view in VIEW_OPTIONS else stored_view
 
     if view not in VIEW_OPTIONS:
         view = VIEW_OPTIONS[0]
 
     st.session_state["navigation_view"] = view
-    if "navigation_view_selector" not in st.session_state:
-        st.session_state["navigation_view_selector"] = view
     return view
 
 
-def render_filter_summary(items: list[tuple[str, str]], *, hint: str = "Filtros aplicados") -> None:
-    chip_html = ""
-    for label, value in items:
-        chip_html += (
-            "<div class='filter-chip'>"
-            f"<span>{escape(str(label))}</span>"
-            f"<strong title='{escape(str(value))}'>{escape(str(value))}</strong>"
-            "</div>"
+def render_view_tabs() -> None:
+    active_view = st.session_state.get("navigation_view", VIEW_OPTIONS[0])
+    tabs_html = ""
+
+    for idx, view_name in enumerate(VIEW_OPTIONS, start=1):
+        active_class = " active" if view_name == active_view else ""
+        tabs_html += (
+            f'<a class="dashboard-tab{active_class}" href="?view={quote(view_name)}">'
+            f'<span class="dashboard-tab-index">{idx:02d}</span>'
+            f'<span class="dashboard-tab-label">{escape(view_name)}</span>'
+            "</a>"
         )
 
-    st.html(
+    st.markdown(
         f"""
-        <div class="filter-summary-card">
-            <div class="filter-summary-head">
-                <div class="filter-summary-title">Contexto activo</div>
-                <div class="filter-summary-hint">{escape(hint)}</div>
+        <nav class="dashboard-tabs" aria-label="Vistas del dashboard">
+            <div class="dashboard-tabs-head">
+                <div class="dashboard-tabs-title">Vistas del dashboard</div>
+                <div class="dashboard-tabs-caption">Navegación principal</div>
             </div>
-            <div class="filter-chip-row">
-                {chip_html}
+            <div class="dashboard-tab-grid">
+                {tabs_html}
             </div>
-        </div>
-        """
+        </nav>
+        """,
+        unsafe_allow_html=True,
     )
-
-
-def render_view_tabs() -> None:
-    st.html(
-        """
-        <div class="view-tabs-header">
-            <div class="view-tabs-label">Vistas del dashboard</div>
-            <div class="view-tabs-caption">Cambia de módulo sin abrir menús laterales</div>
-        </div>
-        """
-    )
-    selected_view = st.segmented_control(
-        "Vistas del dashboard",
-        VIEW_OPTIONS,
-        key="navigation_view_selector",
-        label_visibility="collapsed",
-        width="stretch",
-    )
-    if selected_view in VIEW_OPTIONS:
-        st.session_state["navigation_view"] = selected_view
 
 
 def main() -> None:
@@ -3334,16 +3298,6 @@ def main() -> None:
                 
         # Text summary below form
         act = st.session_state["daily_applied"]
-        day_str = act["day"].strftime("%d/%m/%Y") if act["day"] else "N/A"
-        armies_str = "Todos" if len(act["armies"]) == len(army_options) else f"{len(act['armies'])} seleccionados"
-        statuses_str = ", ".join(act["statuses"])
-        render_filter_summary([
-            ("Día operativo", day_str),
-            ("Evento", act["event"]),
-            ("ARMY", armies_str),
-            ("Estatus", statuses_str),
-            ("Tipo", act["participation"]),
-        ])
         render_view_tabs()
         
         # Render Tab 1
@@ -3419,15 +3373,6 @@ def main() -> None:
                 
         # Text summary
         act = st.session_state["compliance_applied"]
-        day_str = act["day"].strftime("%d/%m/%Y") if isinstance(act["day"], dt_module.date) else "Todos"
-        armies_str = "Todos" if len(act["armies"]) == len(ctrl_armies) else f"{len(act['armies'])} seleccionados"
-        render_filter_summary([
-            ("Fecha evento", day_str),
-            ("Evento", act["event"]),
-            ("ARMY", armies_str),
-            ("RRSS", act["rrss"]),
-            ("Estatus", act["status"]),
-        ])
         render_view_tabs()
         
         # Render compliance tab
@@ -3512,14 +3457,6 @@ def main() -> None:
                 
         # Text summary
         act = st.session_state["planning_applied"]
-        dates_str = f"{act['start_date'].strftime('%d/%m/%Y')} - {act['end_date'].strftime('%d/%m/%Y')}" if act["start_date"] else "Todos"
-        render_filter_summary([
-            ("Rango", dates_str),
-            ("Fase", act["phase"]),
-            ("Partido", act["match"]),
-            ("RRSS", act["rrss"]),
-            ("Presión", act["pressure"]),
-        ])
         render_view_tabs()
         
         # Render planning tab
