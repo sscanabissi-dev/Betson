@@ -832,6 +832,87 @@ def inject_styles() -> None:
             line-height: 1.1;
         }
 
+        .filter-summary-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid var(--betsson-border);
+            border-radius: 8px;
+            padding: 0.75rem 0.85rem;
+            margin: 0 0 0.75rem 0;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+        }
+
+        .filter-summary-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .filter-summary-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 900;
+            color: var(--betsson-ink);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .filter-summary-hint {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.66rem;
+            font-weight: 700;
+            color: var(--betsson-muted);
+        }
+
+        .filter-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            min-height: 28px;
+            max-width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #dbe3ee;
+            border-radius: 999px;
+            background-color: #ffffff;
+            padding: 0.28rem 0.65rem;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+        }
+
+        .filter-chip span {
+            flex: 0 0 auto;
+            font-size: 0.62rem;
+            font-weight: 900;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .filter-chip strong {
+            min-width: 0;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--betsson-ink);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .view-tabs-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin: 0.2rem 0 0.45rem 0;
+        }
+
         .view-tabs-label {
             font-family: 'Inter', sans-serif;
             font-size: 0.68rem;
@@ -839,11 +920,23 @@ def inject_styles() -> None:
             color: var(--betsson-muted);
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            margin: 0 0 0.35rem 0;
+            margin: 0;
+        }
+
+        .view-tabs-caption {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.66rem;
+            font-weight: 700;
+            color: #94a3b8;
         }
 
         div[data-testid="stSegmentedControl"] {
+            background: #ffffff;
+            border: 1px solid var(--betsson-border);
+            border-radius: 8px;
+            padding: 0.28rem;
             margin-bottom: 1rem;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
         }
 
         div[data-testid="stSegmentedControl"] button {
@@ -851,6 +944,24 @@ def inject_styles() -> None:
             font-family: 'Inter', sans-serif !important;
             font-size: 0.78rem !important;
             font-weight: 700 !important;
+            min-height: 34px !important;
+            border-color: transparent !important;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+        }
+
+        div[data-testid="stSegmentedControl"] button:hover {
+            background-color: #fff7ed !important;
+            border-color: #fed7aa !important;
+            color: #c2410c !important;
+        }
+
+        div[data-testid="stSegmentedControl"] button[aria-checked="true"],
+        div[data-testid="stSegmentedControl"] button[aria-selected="true"],
+        div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+            background: linear-gradient(180deg, #ff7a1a 0%, #ff6600 100%) !important;
+            color: #ffffff !important;
+            border-color: #ff6600 !important;
+            box-shadow: 0 6px 14px rgba(255, 102, 0, 0.22) !important;
         }
 
         /* Card container */
@@ -1014,6 +1125,17 @@ def inject_styles() -> None:
                 flex: 1 1 180px !important;
             }
 
+            .filter-summary-head,
+            .view-tabs-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 0.2rem;
+            }
+
+            .filter-chip {
+                flex: 1 1 180px;
+            }
+
             .kpi-grid {
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
@@ -1036,6 +1158,25 @@ def inject_styles() -> None:
             div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] button {
                 min-height: 38px !important;
                 height: 38px !important;
+            }
+
+            .filter-summary-card {
+                padding: 0.7rem;
+            }
+
+            .filter-chip {
+                flex: 1 1 100%;
+                justify-content: space-between;
+                border-radius: 8px;
+            }
+
+            .filter-chip strong {
+                text-align: right;
+            }
+
+            div[data-testid="stSegmentedControl"] button {
+                flex: 1 1 100% !important;
+                justify-content: center !important;
             }
 
             .kpi-grid {
@@ -3003,8 +3144,40 @@ def current_navigation_view() -> str:
     return view
 
 
+def render_filter_summary(items: list[tuple[str, str]], *, hint: str = "Filtros aplicados") -> None:
+    chip_html = ""
+    for label, value in items:
+        chip_html += (
+            "<div class='filter-chip'>"
+            f"<span>{escape(str(label))}</span>"
+            f"<strong title='{escape(str(value))}'>{escape(str(value))}</strong>"
+            "</div>"
+        )
+
+    st.html(
+        f"""
+        <div class="filter-summary-card">
+            <div class="filter-summary-head">
+                <div class="filter-summary-title">Contexto activo</div>
+                <div class="filter-summary-hint">{escape(hint)}</div>
+            </div>
+            <div class="filter-chip-row">
+                {chip_html}
+            </div>
+        </div>
+        """
+    )
+
+
 def render_view_tabs() -> None:
-    st.markdown("<div class='view-tabs-label'>Vistas del dashboard</div>", unsafe_allow_html=True)
+    st.html(
+        """
+        <div class="view-tabs-header">
+            <div class="view-tabs-label">Vistas del dashboard</div>
+            <div class="view-tabs-caption">Cambia de módulo sin abrir menús laterales</div>
+        </div>
+        """
+    )
     selected_view = st.segmented_control(
         "Vistas del dashboard",
         VIEW_OPTIONS,
@@ -3130,12 +3303,13 @@ def main() -> None:
         day_str = act["day"].strftime("%d/%m/%Y") if act["day"] else "N/A"
         armies_str = "Todos" if len(act["armies"]) == len(army_options) else f"{len(act['armies'])} seleccionados"
         statuses_str = ", ".join(act["statuses"])
-        st.markdown(
-            f"<div style='font-family:Inter; font-size:0.75rem; color:var(--betsson-muted); margin-bottom:1rem; font-weight:600; text-align:center;'>"
-            f"Día Operativo: {day_str} · Evento: {act['event']} · ARMY: {armies_str} · Estatus: {statuses_str} · Tipo: {act['participation']}"
-            f"</div>",
-            unsafe_allow_html=True
-        )
+        render_filter_summary([
+            ("Día operativo", day_str),
+            ("Evento", act["event"]),
+            ("ARMY", armies_str),
+            ("Estatus", statuses_str),
+            ("Tipo", act["participation"]),
+        ])
         render_view_tabs()
         
         # Render Tab 1
@@ -3213,12 +3387,13 @@ def main() -> None:
         act = st.session_state["compliance_applied"]
         day_str = act["day"].strftime("%d/%m/%Y") if isinstance(act["day"], dt_module.date) else "Todos"
         armies_str = "Todos" if len(act["armies"]) == len(ctrl_armies) else f"{len(act['armies'])} seleccionados"
-        st.markdown(
-            f"<div style='font-family:Inter; font-size:0.75rem; color:var(--betsson-muted); margin-bottom:1rem; font-weight:600; text-align:center;'>"
-            f"Fecha Evento: {day_str} · Evento: {act['event']} · ARMY: {armies_str} · RRSS: {act['rrss']} · Estatus: {act['status']}"
-            f"</div>",
-            unsafe_allow_html=True
-        )
+        render_filter_summary([
+            ("Fecha evento", day_str),
+            ("Evento", act["event"]),
+            ("ARMY", armies_str),
+            ("RRSS", act["rrss"]),
+            ("Estatus", act["status"]),
+        ])
         render_view_tabs()
         
         # Render compliance tab
@@ -3304,12 +3479,13 @@ def main() -> None:
         # Text summary
         act = st.session_state["planning_applied"]
         dates_str = f"{act['start_date'].strftime('%d/%m/%Y')} - {act['end_date'].strftime('%d/%m/%Y')}" if act["start_date"] else "Todos"
-        st.markdown(
-            f"<div style='font-family:Inter; font-size:0.75rem; color:var(--betsson-muted); margin-bottom:1rem; font-weight:600; text-align:center;'>"
-            f"Rango: {dates_str} · Fase: {act['phase']} · Partido: {act['match']} · RRSS: {act['rrss']} · Presión: {act['pressure']}"
-            f"</div>",
-            unsafe_allow_html=True
-        )
+        render_filter_summary([
+            ("Rango", dates_str),
+            ("Fase", act["phase"]),
+            ("Partido", act["match"]),
+            ("RRSS", act["rrss"]),
+            ("Presión", act["pressure"]),
+        ])
         render_view_tabs()
         
         # Render planning tab
