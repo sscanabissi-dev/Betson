@@ -231,6 +231,11 @@ def to_number(series: pd.Series) -> pd.Series:
         errors="coerce",
     ).fillna(0)
 
+def to_optional_number(series: pd.Series) -> pd.Series:
+    cleaned = series.astype(str).str.replace(",", ".", regex=False).str.strip()
+    cleaned = cleaned.replace({"": pd.NA, "nan": pd.NA, "None": pd.NA, "#N/A": pd.NA})
+    return pd.to_numeric(cleaned, errors="coerce")
+
 def normalize_optional_link(value: str) -> bool:
     cleaned = str(value).strip().lower()
     if not cleaned:
@@ -316,6 +321,77 @@ def prepare_agents(df: pd.DataFrame) -> pd.DataFrame:
     prepared = prepared.sort_values(["Activo", AGENT_REGISTRATION_COL], ascending=[False, False])
     return prepared.drop_duplicates(subset=[JOIN_KEY_COL], keep="first")
 
+def recalculate_daily_control_metrics(prepared: pd.DataFrame) -> pd.DataFrame:
+    prepared = prepared.copy()
+    prepared["total_logrado"] = prepared["comentarios_logrados"] + prepared["reposts_logrados"]
+
+    has_comment_objective = prepared["comentarios_objetivo"].notna()
+    has_repost_objective = prepared["reposts_objetivo"].notna()
+    has_any_objective = has_comment_objective | has_repost_objective
+
+    prepared["total_objetivo"] = (
+        prepared[["comentarios_objetivo", "reposts_objetivo"]]
+        .fillna(0)
+        .sum(axis=1)
+    )
+    prepared.loc[~has_any_objective, "total_objetivo"] = pd.NA
+
+    prepared["comentarios_faltantes"] = pd.NA
+    prepared["reposts_faltantes"] = pd.NA
+    prepared["exceso_comentarios"] = pd.NA
+    prepared["exceso_reposts"] = pd.NA
+
+    prepared.loc[has_comment_objective, "comentarios_faltantes"] = (
+        prepared.loc[has_comment_objective, "comentarios_objetivo"]
+        - prepared.loc[has_comment_objective, "comentarios_logrados"]
+    ).clip(lower=0)
+    prepared.loc[has_comment_objective, "exceso_comentarios"] = (
+        prepared.loc[has_comment_objective, "comentarios_logrados"]
+        - prepared.loc[has_comment_objective, "comentarios_objetivo"]
+    ).clip(lower=0)
+
+    prepared.loc[has_repost_objective, "reposts_faltantes"] = (
+        prepared.loc[has_repost_objective, "reposts_objetivo"]
+        - prepared.loc[has_repost_objective, "reposts_logrados"]
+    ).clip(lower=0)
+    prepared.loc[has_repost_objective, "exceso_reposts"] = (
+        prepared.loc[has_repost_objective, "reposts_logrados"]
+        - prepared.loc[has_repost_objective, "reposts_objetivo"]
+    ).clip(lower=0)
+
+    prepared["cumplimiento_pct"] = pd.NA
+    objective_mask = prepared["total_objetivo"].notna() & prepared["total_objetivo"].ne(0)
+    prepared.loc[objective_mask, "cumplimiento_pct"] = (
+        prepared.loc[objective_mask, "total_logrado"]
+        / prepared.loc[objective_mask, "total_objetivo"]
+    )
+
+    def calc_status(row):
+        c_log = row["comentarios_logrados"]
+        r_log = row["reposts_logrados"]
+        c_obj = row["comentarios_objetivo"]
+        r_obj = row["reposts_objetivo"]
+
+        if pd.isna(c_obj) and pd.isna(r_obj):
+            return "SIN OBJETIVO CARGADO"
+
+        if c_log == 0 and r_log == 0:
+            return "SIN ACTIVIDAD"
+
+        c_met = True if pd.isna(c_obj) else (c_log >= c_obj)
+        r_met = True if pd.isna(r_obj) else (r_log >= r_obj)
+
+        if c_met and r_met:
+            return "CUMPLIDO"
+
+        if c_log > 0 or r_log > 0:
+            return "PARCIAL"
+
+        return "NO CUMPLIDO"
+
+    prepared["estado_cumplimiento"] = prepared.apply(calc_status, axis=1)
+    return prepared
+
 def prepare_daily_control(df: pd.DataFrame) -> pd.DataFrame:
     prepared = df.copy()
     prepared[CONTROL_PERSON_COL] = normalize_text(prepared[CONTROL_PERSON_COL], fallback="Sin nombre")
@@ -343,94 +419,72 @@ def prepare_daily_control(df: pd.DataFrame) -> pd.DataFrame:
     prepared[["evento_original", "evento_key", "evento_mostrar"]] = prepared[CONTROL_EVENT_COL].apply(norm_event_cd)
     prepared[CONTROL_DATE_COL] = pd.to_datetime(prepared[CONTROL_DATE_COL], dayfirst=True, errors="coerce").dt.date
 
-    # Recalculate metrics in Python
+    # CONTROL_DIARIO uses the "Logrados" columns as the operational target when
+    # the explicit objective columns are blank.
     prepared["comentarios_logrados"] = to_number(prepared[COMMENTS_DONE_COL])
     prepared["reposts_logrados"] = to_number(prepared[REPOSTS_DONE_COL])
-    prepared["total_logrado"] = prepared["comentarios_logrados"] + prepared["reposts_logrados"]
-    
-    def parse_objective(val):
-        cleaned = str(val).replace(",", ".").strip()
-        if cleaned in ["", "nan", "None", "#N/A"]:
-            return pd.NA
-        try:
-            return float(cleaned)
-        except ValueError:
-            return pd.NA
-            
-    prepared["comentarios_objetivo"] = prepared[COMMENTS_GOAL_COL].apply(parse_objective)
-    prepared["reposts_objetivo"] = prepared[REPOSTS_GOAL_COL].apply(parse_objective)
-    
-    def calc_total_objective(row):
-        c_obj = row["comentarios_objetivo"]
-        r_obj = row["reposts_objetivo"]
-        if pd.isna(c_obj) and pd.isna(r_obj):
-            return pd.NA
-        c_val = c_obj if pd.notna(c_obj) else 0.0
-        r_val = r_obj if pd.notna(r_obj) else 0.0
-        return c_val + r_val
-        
-    prepared["total_objetivo"] = prepared.apply(calc_total_objective, axis=1)
-    
-    def calc_metrics(row):
-        c_log = row["comentarios_logrados"]
-        r_log = row["reposts_logrados"]
-        c_obj = row["comentarios_objetivo"]
-        r_obj = row["reposts_objetivo"]
-        
-        c_falt = pd.NA
-        r_falt = pd.NA
-        c_exc = pd.NA
-        r_exc = pd.NA
-        
-        if pd.notna(c_obj):
-            c_falt = max(c_obj - c_log, 0.0)
-            c_exc = max(c_log - c_obj, 0.0)
-            
-        if pd.notna(r_obj):
-            r_falt = max(r_obj - r_log, 0.0)
-            r_exc = max(r_log - r_obj, 0.0)
-            
-        return pd.Series([c_falt, r_falt, c_exc, r_exc])
-        
-    prepared[["comentarios_faltantes", "reposts_faltantes", "exceso_comentarios", "exceso_reposts"]] = prepared.apply(calc_metrics, axis=1)
-    
-    def calc_compliance_pct(row):
-        t_obj = row["total_objetivo"]
-        if pd.isna(t_obj) or t_obj == 0:
-            return pd.NA
-        return row["total_logrado"] / t_obj
-        
-    prepared["cumplimiento_pct"] = prepared.apply(calc_compliance_pct, axis=1)
-    
-    def calc_status(row):
-        c_log = row["comentarios_logrados"]
-        r_log = row["reposts_logrados"]
-        c_obj = row["comentarios_objetivo"]
-        r_obj = row["reposts_objetivo"]
-        
-        if pd.isna(c_obj) and pd.isna(r_obj):
-            return "SIN OBJETIVO CARGADO"
-            
-        if c_log == 0 and r_log == 0:
-            return "SIN ACTIVIDAD"
-            
-        c_met = True if pd.isna(c_obj) else (c_log >= c_obj)
-        r_met = True if pd.isna(r_obj) else (r_log >= r_obj)
-        
-        if c_met and r_met:
-            return "CUMPLIDO"
-            
-        if c_log > 0 or r_log > 0:
-            return "PARCIAL"
-            
-        return "NO CUMPLIDO"
-        
-    prepared["estado_cumplimiento"] = prepared.apply(calc_status, axis=1)
+    prepared["comentarios_objetivo"] = to_optional_number(prepared[COMMENTS_GOAL_COL]).combine_first(
+        to_optional_number(prepared[COMMENTS_DONE_COL])
+    )
+    prepared["reposts_objetivo"] = to_optional_number(prepared[REPOSTS_GOAL_COL]).combine_first(
+        to_optional_number(prepared[REPOSTS_DONE_COL])
+    )
+    prepared = recalculate_daily_control_metrics(prepared)
 
     return prepared[prepared[CONTROL_PERSON_COL].ne("Sin nombre")].sort_values(
         [CONTROL_DATE_COL, "estado_cumplimiento", "total_logrado"],
         ascending=[False, True, False]
     )
+
+def apply_interaction_actuals_to_daily_control(
+    control_df: pd.DataFrame,
+    enriched_df: pd.DataFrame,
+) -> pd.DataFrame:
+    prepared = control_df.copy()
+    prepared["comentarios_logrados"] = 0.0
+    prepared["reposts_logrados"] = 0.0
+
+    if prepared.empty or enriched_df.empty:
+        return recalculate_daily_control_metrics(prepared)
+
+    actuals = (
+        enriched_df
+        .groupby([JOIN_KEY_COL, "evento_key", "tipo_participacion_normalizado"])
+        .size()
+        .unstack(fill_value=0)
+    )
+    for participation_type in ["COMENTARIO", "REPOST"]:
+        if participation_type not in actuals.columns:
+            actuals[participation_type] = 0
+
+    actual_lookup = actuals[["COMENTARIO", "REPOST"]].to_dict("index")
+
+    def distribute_actuals(indexes: list[int], objective_col: str, achieved_col: str, actual_total: float) -> None:
+        remaining = float(actual_total)
+        rows_with_objective = []
+
+        for idx in indexes:
+            objective = prepared.at[idx, objective_col]
+            if pd.isna(objective) or float(objective) <= 0:
+                prepared.at[idx, achieved_col] = 0.0
+                continue
+
+            assigned = min(remaining, float(objective))
+            prepared.at[idx, achieved_col] = assigned
+            remaining -= assigned
+            rows_with_objective.append(idx)
+
+        if remaining > 0 and indexes:
+            overflow_idx = rows_with_objective[-1] if rows_with_objective else indexes[-1]
+            prepared.at[overflow_idx, achieved_col] = float(prepared.at[overflow_idx, achieved_col]) + remaining
+
+    for (contact_key, event_key), group in prepared.groupby([JOIN_KEY_COL, "evento_key"], sort=False):
+        actual = actual_lookup.get((contact_key, event_key), {"COMENTARIO": 0, "REPOST": 0})
+        group_indexes = group.index.tolist()
+        distribute_actuals(group_indexes, "comentarios_objetivo", "comentarios_logrados", actual["COMENTARIO"])
+        distribute_actuals(group_indexes, "reposts_objetivo", "reposts_logrados", actual["REPOST"])
+
+    return recalculate_daily_control_metrics(prepared)
 
 def prepare_matches(df: pd.DataFrame) -> pd.DataFrame:
     prepared = df.copy()
@@ -1835,7 +1889,7 @@ def render_daily_progress_tab(
                     heat_data.append([c_idx, r_idx, int(count)])
 
             option = echart_base("Mapa de Calor por Hora y ARMY")
-            option["grid"] = {"top": 35, "left": 15, "right": 15, "bottom": 45, "containLabel": True}
+            option["grid"] = {"top": 35, "left": 15, "right": 15, "bottom": 16, "containLabel": True}
             option["xAxis"] = {
                 "type": "category", 
                 "data": [f"{h:02d}:00" for h in range(24)], 
@@ -1847,14 +1901,10 @@ def render_daily_progress_tab(
                 "axisLabel": {"color": INK, "fontSize": 9, "width": 110, "overflow": "truncate", "fontFamily": "Inter"}
             }
             option["visualMap"] = {
+                "show": False,
                 "min": 0,
                 "max": max([v[2] for v in heat_data], default=1),
-                "calculable": True,
-                "orient": "horizontal",
-                "left": "center",
-                "bottom": 0,
-                "itemHeight": 10,
-                "textStyle": {"fontSize": 9, "fontFamily": "Inter"},
+                "calculable": False,
                 "inRange": {"color": ["#f8fafc", "#ffe5d9", "#ff6600"]}
             }
             option["series"] = [{
@@ -2195,14 +2245,10 @@ def render_compliance_tab(
                 "axisLabel": {"color": INK, "fontSize": 9, "width": 120, "overflow": "truncate"}
             }
             option["visualMap"] = {
+                "show": False,
                 "min": 0,
                 "max": 1,
-                "calculable": True,
-                "orient": "horizontal",
-                "left": "center",
-                "bottom": 0,
-                "itemHeight": 10,
-                "textStyle": {"fontSize": 9, "fontFamily": "Inter"},
+                "calculable": False,
                 "inRange": {"color": ["#fee2e2", "#fef3c7", "#d1fae5"]}
             }
             option["series"] = [{
@@ -2582,7 +2628,13 @@ def generate_quality_report(
             })
             
     # 9. Eventos sin objetivo
-    na_goals = raw_control[raw_control[COMMENTS_GOAL_COL].isin(["", "nan", "None", "#N/A"]) & raw_control[REPOSTS_GOAL_COL].isin(["", "nan", "None", "#N/A"])]
+    comment_objectives = to_optional_number(raw_control[COMMENTS_GOAL_COL]).combine_first(
+        to_optional_number(raw_control[COMMENTS_DONE_COL])
+    )
+    repost_objectives = to_optional_number(raw_control[REPOSTS_GOAL_COL]).combine_first(
+        to_optional_number(raw_control[REPOSTS_DONE_COL])
+    )
+    na_goals = raw_control[comment_objectives.isna() & repost_objectives.isna()]
     for idx, row in na_goals.iterrows():
         records.append({
             "Hoja": DAILY_CONTROL_SHEET_NAME,
@@ -2590,7 +2642,7 @@ def generate_quality_report(
             "Campo": f"{COMMENTS_GOAL_COL} / {REPOSTS_GOAL_COL}",
             "Valor original": "Vacío / #N/A",
             "Tipo de problema": "Objetivos no configurados para el evento",
-            "Corrección sugerida": "Configurar objetivos en CONTROL_DIARIO"
+            "Corrección sugerida": "Configurar objetivos o cargar el objetivo operativo en las columnas de comentarios/reposts"
         })
         
     # 10. Evidencias vacías en interacciones
@@ -2853,6 +2905,10 @@ def main() -> None:
     interactions = prepare_interactions(raw_interactions)
     agents = prepare_agents(raw_agents)
     daily_control = prepare_daily_control(raw_control)
+    matches = prepare_matches(raw_matches)
+    enriched = enrich_interactions(interactions, agents)
+    daily_control = apply_interaction_actuals_to_daily_control(daily_control, enriched)
+
     # Merge daily_control with agents to get Estatus and Activo
     daily_control = daily_control.merge(
         agents[[JOIN_KEY_COL, STATUS_COL, "Activo"]],
@@ -2864,9 +2920,6 @@ def main() -> None:
     is_inactive = daily_control[STATUS_COL] == "INACTIVO"
     daily_control.loc[is_retired, "estado_cumplimiento"] = "RETIRADO"
     daily_control.loc[is_inactive, "estado_cumplimiento"] = "INACTIVO"
-    
-    matches = prepare_matches(raw_matches)
-    enriched = enrich_interactions(interactions, agents)
 
     # 1. Header Layout
     render_top_header(enriched, agents)
