@@ -1676,6 +1676,7 @@ def render_grid(data: pd.DataFrame, *, height: int = 320, key: str | None = None
         wrapText=False,
         autoHeight=False,
         minWidth=110,
+        cellStyle={'text-align': 'center'},
     )
     gb.configure_grid_options(
         rowHeight=32,
@@ -1990,8 +1991,9 @@ def render_grid(data: pd.DataFrame, *, height: int = 320, key: str | None = None
         },
         ".ag-header": {"background-color": "#f8fafc", "border-bottom": "1px solid #e2e8f0"},
         ".ag-header-cell-text": {"font-weight": "800", "color": "#111827", "font-family": "Inter"},
+        ".ag-header-cell-label": {"justify-content": "center !important"},
         ".ag-row": {"font-size": "11.5px", "font-family": "Inter", "color": "#111827"},
-        ".ag-cell": {"display": "flex", "align-items": "center"},
+        ".ag-cell": {"display": "flex", "align-items": "center", "justify-content": "center !important", "text-align": "center !important"},
     }
     
     # Enable exporting to CSV inside AgGrid
