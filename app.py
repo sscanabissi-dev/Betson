@@ -1720,9 +1720,9 @@ def render_daily_progress_tab(
             option["xAxis"] = {"type": "category", "data": [f"{h:02d}:00" for h in range(24)], "axisLabel": {"color": INK}}
             option["yAxis"] = {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}}
             option["series"] = [
-                {"name": "Total Acumulado", "type": "line", "data": cum_total.tolist(), "smooth": True},
-                {"name": "Comentarios Acumulados", "type": "line", "data": cum_com.tolist(), "smooth": True},
-                {"name": "Reposts Acumulados", "type": "line", "data": cum_rep.tolist(), "smooth": True},
+                {"name": "Total Acumulado", "type": "line", "data": cum_total.tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}},
+                {"name": "Comentarios Acumulados", "type": "line", "data": cum_com.tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8}},
+                {"name": "Reposts Acumulados", "type": "line", "data": cum_rep.tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8}},
                 {"name": "Participantes Únicos", "type": "line", "data": cum_unique, "symbolSize": 0, "lineStyle": {"width": 0}, "showSymbol": False},
                 {"name": "Variación vs Hora Anterior", "type": "line", "data": var_total, "symbolSize": 0, "lineStyle": {"width": 0}, "showSymbol": False},
             ]
@@ -1748,8 +1748,8 @@ def render_daily_progress_tab(
                 "axisLine": {"show": False},
             }
             option["series"] = [
-                {"name": "COMENTARIO", "type": "bar", "stack": "army", "data": army_total["COMENTARIO"].tolist(), "barMaxWidth": 20},
-                {"name": "REPOST", "type": "bar", "stack": "army", "data": army_total["REPOST"].tolist(), "barMaxWidth": 20}
+                {"name": "COMENTARIO", "type": "bar", "stack": "army", "data": army_total["COMENTARIO"].tolist(), "barMaxWidth": 20, "label": {"show": True, "position": "insideRight", "fontSize": 8, "color": "#ffffff"}},
+                {"name": "REPOST", "type": "bar", "stack": "army", "data": army_total["REPOST"].tolist(), "barMaxWidth": 20, "label": {"show": True, "position": "insideRight", "fontSize": 8, "color": "#ffffff"}}
             ]
             render_echart(option, height=220, key="army_stacked_chart")
 
@@ -1779,7 +1779,7 @@ def render_daily_progress_tab(
                 "axisLine": {"show": False},
             }
             option["series"] = [
-                {"name": "Interacciones", "type": "bar", "data": top15["Interacciones"].tolist(), "barMaxWidth": 14, "itemStyle": {"borderRadius": [0, 4, 4, 0]}}
+                {"name": "Interacciones", "type": "bar", "data": top15["Interacciones"].tolist(), "barMaxWidth": 14, "itemStyle": {"borderRadius": [0, 4, 4, 0]}, "label": {"show": True, "position": "right", "fontSize": 8, "fontWeight": "bold", "color": INK}}
             ]
             render_echart(option, height=220, key="top15_participants_chart")
         
@@ -1841,10 +1841,10 @@ def render_daily_progress_tab(
         option["xAxis"] = {"type": "category", "data": dates_labels, "axisLabel": {"color": INK}}
         option["yAxis"] = {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}}
         option["series"] = [
-            {"name": "Interacciones", "type": "line", "data": trend_df["Interacciones"].tolist(), "smooth": True},
-            {"name": "Comentarios", "type": "line", "data": trend_df["Comentarios"].tolist(), "smooth": True},
-            {"name": "Reposts", "type": "line", "data": trend_df["Reposts"].tolist(), "smooth": True},
-            {"name": "Part. Únicos", "type": "line", "data": trend_df["Unicos"].tolist(), "smooth": True}
+            {"name": "Interacciones", "type": "line", "data": trend_df["Interacciones"].tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}},
+            {"name": "Comentarios", "type": "line", "data": trend_df["Comentarios"].tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8}},
+            {"name": "Reposts", "type": "line", "data": trend_df["Reposts"].tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8}},
+            {"name": "Part. Únicos", "type": "line", "data": trend_df["Unicos"].tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8}}
         ]
         render_echart(option, height=200, key="daily_trend_chart")
 
@@ -2305,7 +2305,7 @@ def render_planning_tab(
             option = echart_base("Acciones Planificadas por Fecha")
             option["xAxis"] = {"type": "category", "data": by_date["FechaLabel"].tolist()}
             option["yAxis"] = {"type": "value"}
-            option["series"] = [{"name": "Acciones", "type": "line", "data": by_date[MATCH_TOTAL_ACTIONS_COL].tolist(), "smooth": True}]
+            option["series"] = [{"name": "Acciones", "type": "line", "data": by_date[MATCH_TOTAL_ACTIONS_COL].tolist(), "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}}]
             render_echart(option, height=200, key="plan_actions_by_date")
         
     with col2:
@@ -2322,7 +2322,7 @@ def render_planning_tab(
                 "axisTick": {"show": False},
                 "axisLine": {"show": False},
             }
-            option["series"] = [{"name": "Acciones", "type": "bar", "data": by_match.tolist(), "barMaxWidth": 14}]
+            option["series"] = [{"name": "Acciones", "type": "bar", "data": by_match.tolist(), "barMaxWidth": 14, "label": {"show": True, "position": "right", "fontSize": 8, "fontWeight": "bold"}}]
             render_echart(option, height=200, key="plan_actions_by_match")
 
     col3, col4, col5 = st.columns(3)
@@ -2352,7 +2352,7 @@ def render_planning_tab(
             option = echart_base("Acciones por Nivel de Presión")
             option["xAxis"] = {"type": "category", "data": by_press["Nivel de presión"].tolist()}
             option["yAxis"] = {"type": "value"}
-            option["series"] = [{"name": "Acciones", "type": "bar", "data": by_press[MATCH_TOTAL_ACTIONS_COL].tolist(), "barMaxWidth": 14}]
+            option["series"] = [{"name": "Acciones", "type": "bar", "data": by_press[MATCH_TOTAL_ACTIONS_COL].tolist(), "barMaxWidth": 14, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}}]
             render_echart(option, height=200, key="plan_pressure_bar")
 
     # matches table
@@ -2599,14 +2599,18 @@ def generate_quality_report(
 def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -> None:
     st.markdown("<div class='section-title'>Resumen Histórico de Operaciones</div>", unsafe_allow_html=True)
     
-    # 1. Calculate historical KPIs
-    total_ints = len(enriched_df)
-    comments = enriched_df[enriched_df["tipo_participacion_normalizado"] == "COMENTARIO"].shape[0]
-    reposts = enriched_df[enriched_df["tipo_participacion_normalizado"] == "REPOST"].shape[0]
-    unique_staff = enriched_df[JOIN_KEY_COL].nunique()
+    # Drop rows with null dates to prevent NaTType strftime errors
+    clean_enriched = enriched_df.dropna(subset=["fecha_registro"])
+    clean_control = control_df.dropna(subset=[CONTROL_DATE_COL])
     
-    tot_logged = control_df["total_logrado"].sum()
-    tot_obj = control_df["total_objetivo"].dropna().sum()
+    # 1. Calculate historical KPIs
+    total_ints = len(clean_enriched)
+    comments = clean_enriched[clean_enriched["tipo_participacion_normalizado"] == "COMENTARIO"].shape[0]
+    reposts = clean_enriched[clean_enriched["tipo_participacion_normalizado"] == "REPOST"].shape[0]
+    unique_staff = clean_enriched[JOIN_KEY_COL].nunique()
+    
+    tot_logged = clean_control["total_logrado"].sum()
+    tot_obj = clean_control["total_objetivo"].dropna().sum()
     overall_comp = (tot_logged / tot_obj) if tot_obj > 0 else 0.0
     
     render_kpi_cards([
@@ -2638,7 +2642,7 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
     # Chart 1: Daily Evolution of Interactions (Area chart)
     with col1:
         with st.container(border=True):
-            hist_df = enriched_df.groupby(["fecha_registro", "tipo_participacion_normalizado"]).size().unstack(fill_value=0)
+            hist_df = clean_enriched.groupby(["fecha_registro", "tipo_participacion_normalizado"]).size().unstack(fill_value=0)
             hist_df = hist_df.reindex(columns=["COMENTARIO", "REPOST"], fill_value=0)
             hist_df["Total"] = hist_df["COMENTARIO"] + hist_df["REPOST"]
             hist_df = hist_df.sort_index()
@@ -2652,16 +2656,16 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
             option1["xAxis"] = {"type": "category", "data": dates, "axisLabel": {"color": INK}}
             option1["yAxis"] = {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}}
             option1["series"] = [
-                {"name": "Comentarios", "type": "line", "stack": "Total", "areaStyle": {"opacity": 0.15}, "data": com_data, "smooth": True},
-                {"name": "Reposts", "type": "line", "stack": "Total", "areaStyle": {"opacity": 0.15}, "data": rep_data, "smooth": True},
-                {"name": "Total Acción", "type": "line", "data": tot_data, "smooth": True}
+                {"name": "Comentarios", "type": "line", "stack": "Total", "areaStyle": {"opacity": 0.15}, "data": com_data, "smooth": True, "label": {"show": True, "position": "inside", "fontSize": 8, "color": "#111827"}},
+                {"name": "Reposts", "type": "line", "stack": "Total", "areaStyle": {"opacity": 0.15}, "data": rep_data, "smooth": True, "label": {"show": True, "position": "inside", "fontSize": 8, "color": "#111827"}},
+                {"name": "Total Acción", "type": "line", "data": tot_data, "smooth": True, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold", "color": "#ff6600"}}
             ]
             render_echart(option1, height=220, key="hist_evolution_chart")
             
     # Chart 2: Goal compliance over time (Dual axis)
     with col2:
         with st.container(border=True):
-            ctrl_hist = control_df.groupby(CONTROL_DATE_COL).agg(
+            ctrl_hist = clean_control.groupby(CONTROL_DATE_COL).agg(
                 Logrado=("total_logrado", "sum"),
                 Objetivo=("total_objetivo", lambda s: s.dropna().sum())
             ).sort_index()
@@ -2678,9 +2682,9 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
                 {"type": "value", "name": "Cumplimiento %", "axisLabel": {"formatter": "{value}%"}, "splitLine": {"show": False}}
             ]
             option2["series"] = [
-                {"name": "Logrado", "type": "bar", "data": log_data, "barMaxWidth": 14},
-                {"name": "Objetivo", "type": "bar", "data": obj_data, "barMaxWidth": 14},
-                {"name": "Cumplimiento %", "type": "line", "yAxisIndex": 1, "data": [round(c, 1) for c in comp_data], "smooth": True}
+                {"name": "Logrado", "type": "bar", "data": log_data, "barMaxWidth": 14, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}},
+                {"name": "Objetivo", "type": "bar", "data": obj_data, "barMaxWidth": 14, "label": {"show": True, "position": "top", "fontSize": 8, "color": "#475569"}},
+                {"name": "Cumplimiento %", "type": "line", "yAxisIndex": 1, "data": [round(c, 1) for c in comp_data], "smooth": True, "label": {"show": True, "position": "top", "formatter": "{c}%", "fontSize": 8, "fontWeight": "bold", "color": "#065f46"}}
             ]
             render_echart(option2, height=220, key="hist_goals_compliance_chart")
             
@@ -2689,12 +2693,12 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
     # Chart 3: Cumulative Productivity per ARMY
     with col3:
         with st.container(border=True):
-            army_hist = enriched_df.groupby("army_resuelto").size().sort_values(ascending=True)
+            army_hist = clean_enriched.groupby("army_resuelto").size().sort_values(ascending=True)
             armies = army_hist.index.tolist()
             counts = army_hist.values.tolist()
             
             option3 = echart_base("Productividad Acumulada por ARMY")
-            option3["grid"] = {"top": 35, "left": 15, "right": 25, "bottom": 10, "containLabel": True}
+            option3["grid"] = {"top": 35, "left": 15, "right": 35, "bottom": 10, "containLabel": True}
             option3["xAxis"] = {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}}
             option3["yAxis"] = {
                 "type": "category",
@@ -2704,14 +2708,14 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
                 "axisLine": {"show": False},
             }
             option3["series"] = [
-                {"name": "Interacciones", "type": "bar", "data": counts, "barMaxWidth": 14, "itemStyle": {"borderRadius": [0, 4, 4, 0]}}
+                {"name": "Interacciones", "type": "bar", "data": counts, "barMaxWidth": 14, "itemStyle": {"borderRadius": [0, 4, 4, 0]}, "label": {"show": True, "position": "right", "fontSize": 8, "fontWeight": "bold", "color": INK}}
             ]
             render_echart(option3, height=220, key="hist_army_prod_chart")
             
     # Chart 4: Unique active staff daily
     with col4:
         with st.container(border=True):
-            part_hist = enriched_df.groupby("fecha_registro")[JOIN_KEY_COL].nunique().sort_index()
+            part_hist = clean_enriched.groupby("fecha_registro")[JOIN_KEY_COL].nunique().sort_index()
             part_dates = [d.strftime("%d/%m/%Y") for d in part_hist.index]
             part_counts = part_hist.values.tolist()
             
@@ -2719,7 +2723,7 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
             option4["xAxis"] = {"type": "category", "data": part_dates, "axisLabel": {"color": INK}}
             option4["yAxis"] = {"type": "value", "splitLine": {"lineStyle": {"color": "#f1f5f9"}}}
             option4["series"] = [
-                {"name": "Participantes Activos", "type": "line", "data": part_counts, "smooth": True, "areaStyle": {"opacity": 0.08}}
+                {"name": "Participantes Activos", "type": "line", "data": part_counts, "smooth": True, "areaStyle": {"opacity": 0.08}, "label": {"show": True, "position": "top", "fontSize": 8, "fontWeight": "bold"}}
             ]
             render_echart(option4, height=220, key="hist_participation_chart")
             
@@ -2727,14 +2731,15 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
     st.markdown("<div class='section-title'>Tabla de Productividad Histórica Diaria</div>", unsafe_allow_html=True)
     
     table_rows = []
-    for d in sorted(enriched_df["fecha_registro"].dropna().unique()):
-        day_df = enriched_df[enriched_df["fecha_registro"] == d]
+    clean_dates = sorted(clean_enriched["fecha_registro"].unique())
+    for d in clean_dates:
+        day_df = clean_enriched[clean_enriched["fecha_registro"] == d]
         coms = day_df[day_df["tipo_participacion_normalizado"] == "COMENTARIO"].shape[0]
         reps = day_df[day_df["tipo_participacion_normalizado"] == "REPOST"].shape[0]
         total = len(day_df)
         staff_active = day_df[JOIN_KEY_COL].nunique()
         
-        day_ctrl = control_df[control_df[CONTROL_DATE_COL] == d]
+        day_ctrl = clean_control[clean_control[CONTROL_DATE_COL] == d]
         obj = day_ctrl["total_objetivo"].dropna().sum() if not day_ctrl.empty else 0.0
         comp = (total / obj) if obj > 0 else 0.0
         
