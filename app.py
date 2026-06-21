@@ -31,6 +31,13 @@ MATCHES_SHEET_NAME = "PARTIDOS"
 TIMEZONE = ZoneInfo("America/Lima")
 CACHE_TTL_SECONDS = 15
 REFRESH_INTERVAL_SECONDS = 15
+VIEW_OPTIONS = [
+    "Resumen Diario",
+    "Cumplimiento por Evento",
+    "Planificación de Partidos",
+    "Análisis Histórico",
+    "Calidad de Datos",
+]
 ECHARTS_CDN_URL = "https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"
 ICONIFY_SVG_URL = "https://api.iconify.design/{icon}.svg"
 APP_DIR = Path(__file__).resolve().parent
@@ -701,8 +708,13 @@ def inject_styles() -> None:
 
         /* Sidebar settings */
         section[data-testid="stSidebar"] {
-            background-color: #ffffff;
-            border-right: 1px solid var(--betsson-border);
+            display: none !important;
+            width: 0 !important;
+            min-width: 0 !important;
+        }
+
+        div[data-testid="stSidebarCollapsedControl"] {
+            display: none !important;
         }
 
         .sidebar-logo {
@@ -745,6 +757,27 @@ def inject_styles() -> None:
             border-left: 3px solid var(--betsson-orange);
             padding-left: 6px;
             line-height: 1.1;
+        }
+
+        .view-tabs-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.68rem;
+            font-weight: 800;
+            color: var(--betsson-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0 0 0.35rem 0;
+        }
+
+        div[data-testid="stSegmentedControl"] {
+            margin-bottom: 1rem;
+        }
+
+        div[data-testid="stSegmentedControl"] button {
+            border-radius: 6px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
         }
 
         /* Card container */
@@ -2769,6 +2802,33 @@ def render_historical_tab(enriched_df: pd.DataFrame, control_df: pd.DataFrame) -
         render_grid(table_df, height=300, key="historical_summary_table")
 
 
+def current_navigation_view() -> str:
+    selector_view = st.session_state.get("navigation_view_selector")
+    stored_view = st.session_state.get("navigation_view")
+    view = selector_view if selector_view in VIEW_OPTIONS else stored_view
+
+    if view not in VIEW_OPTIONS:
+        view = VIEW_OPTIONS[0]
+
+    st.session_state["navigation_view"] = view
+    if "navigation_view_selector" not in st.session_state:
+        st.session_state["navigation_view_selector"] = view
+    return view
+
+
+def render_view_tabs() -> None:
+    st.markdown("<div class='view-tabs-label'>Vistas del dashboard</div>", unsafe_allow_html=True)
+    selected_view = st.segmented_control(
+        "Vistas del dashboard",
+        VIEW_OPTIONS,
+        key="navigation_view_selector",
+        label_visibility="collapsed",
+        width="stretch",
+    )
+    if selected_view in VIEW_OPTIONS:
+        st.session_state["navigation_view"] = selected_view
+
+
 def main() -> None:
     inject_styles()
     daily_goal = 5
@@ -2810,14 +2870,8 @@ def main() -> None:
     # 1. Header Layout
     render_top_header(enriched, agents)
     
-    # 2. Sidebar navigation
-    st.sidebar.markdown("<h3 style='font-family: Inter; font-size: 1.05rem; font-weight: 800; color: #111827; margin: 0 0 1rem 0;'>Menú de Navegación</h3>", unsafe_allow_html=True)
-    view = st.sidebar.radio(
-        "Selecciona una vista:",
-        ["Resumen Diario", "Cumplimiento por Evento", "Planificación de Partidos", "Análisis Histórico", "Calidad de Datos"],
-        key="navigation_view",
-        label_visibility="collapsed"
-    )
+    # 2. In-content navigation tabs
+    view = current_navigation_view()
     
     # Render view-specific layouts
     if view == "Resumen Diario":
@@ -2893,6 +2947,7 @@ def main() -> None:
             f"</div>",
             unsafe_allow_html=True
         )
+        render_view_tabs()
         
         # Render Tab 1
         render_daily_progress_tab(
@@ -2975,6 +3030,7 @@ def main() -> None:
             f"</div>",
             unsafe_allow_html=True
         )
+        render_view_tabs()
         
         # Render compliance tab
         render_compliance_tab(
@@ -3065,6 +3121,7 @@ def main() -> None:
             f"</div>",
             unsafe_allow_html=True
         )
+        render_view_tabs()
         
         # Render planning tab
         render_planning_tab(
@@ -3079,10 +3136,12 @@ def main() -> None:
         )
         
     elif view == "Análisis Histórico":
+        render_view_tabs()
         render_historical_tab(enriched, daily_control)
         
     elif view == "Calidad de Datos":
         # Audit Tab
+        render_view_tabs()
         render_quality_tab(
             raw_interactions,
             raw_agents,
