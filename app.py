@@ -1882,11 +1882,17 @@ def render_daily_progress_tab(
         with st.container(border=True):
             heatmap_armies = sorted(day_df["army_resuelto"].dropna().unique().tolist())
             heat_data = []
+            heat_values = []
             for r_idx, army in enumerate(heatmap_armies):
                 army_df = day_df[day_df["army_resuelto"] == army]
                 hour_counts = army_df.groupby("hora_bloque").size().reindex(range(24), fill_value=0)
                 for c_idx, count in enumerate(hour_counts):
-                    heat_data.append([c_idx, r_idx, int(count)])
+                    count = int(count)
+                    heat_values.append(count)
+                    heat_data.append({
+                        "value": [c_idx, r_idx, count],
+                        "label": {"show": count > 0, "formatter": str(count)},
+                    })
 
             option = echart_base("Mapa de Calor por Hora y ARMY")
             option["grid"] = {"top": 35, "left": 15, "right": 15, "bottom": 16, "containLabel": True}
@@ -1903,17 +1909,18 @@ def render_daily_progress_tab(
             option["visualMap"] = {
                 "show": False,
                 "min": 0,
-                "max": max([v[2] for v in heat_data], default=1),
+                "max": max(heat_values, default=1),
                 "calculable": False,
                 "inRange": {"color": ["#f8fafc", "#ffe5d9", "#ff6600"]}
             }
             option["series"] = [{
                 "type": "heatmap",
                 "data": heat_data,
-                "label": {"show": False},
+                "label": {"show": True, "fontSize": 8, "fontWeight": "bold", "color": INK},
                 "emphasis": {"itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}}
             }]
-            render_echart(option, height=220, key="hour_army_heatmap")
+            heatmap_height = max(280, min(420, 150 + len(heatmap_armies) * 34))
+            render_echart(option, height=heatmap_height, key="hour_army_heatmap")
 
     # Chart 5: Tendencia diaria
     st.markdown("<div class='section-title'>Tendencia de los Últimos Días</div>", unsafe_allow_html=True)
@@ -2228,9 +2235,12 @@ def render_compliance_tab(
                     match_row = filtered_ctrl[(filtered_ctrl[CONTROL_PERSON_COL] == pp) & (filtered_ctrl["evento_mostrar"] == ev)]
                     if not match_row.empty:
                         val = match_row["cumplimiento_pct"].dropna().iloc[0] if not pd.isna(match_row["cumplimiento_pct"].iloc[0]) else 0.0
-                        heat_data.append([c_idx, r_idx, float(val)])
                     else:
-                        heat_data.append([c_idx, r_idx, 0.0])
+                        val = 0.0
+                    heat_data.append({
+                        "value": [c_idx, r_idx, float(val)],
+                        "label": {"show": True, "formatter": f"{float(val) * 100:.0f}%"},
+                    })
 
             option = echart_base("Mapa de Cumplimiento (Participante x Evento)")
             option["grid"] = {"top": 35, "left": 15, "right": 25, "bottom": 45, "containLabel": True}
@@ -2254,9 +2264,10 @@ def render_compliance_tab(
             option["series"] = [{
                 "type": "heatmap",
                 "data": heat_data,
-                "label": {"show": False}
+                "label": {"show": True, "fontSize": 8, "fontWeight": "bold", "color": INK}
             }]
-            render_echart(option, height=220, key="pp_event_heatmap")
+            compliance_heatmap_height = max(340, min(540, 120 + len(heat_pp) * 24))
+            render_echart(option, height=compliance_heatmap_height, key="pp_event_heatmap")
 
     # Detailed table
     st.markdown("<div class='section-title'>Tabla de Cumplimiento Detallado</div>", unsafe_allow_html=True)
